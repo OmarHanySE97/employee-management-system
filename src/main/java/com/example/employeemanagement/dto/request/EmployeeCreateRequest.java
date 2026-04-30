@@ -39,7 +39,6 @@ public class EmployeeCreateRequest {
     @DecimalMin(value = "0.0", inclusive = false, message = "Salary must be greater than 0")
     private BigDecimal salary;
 
-    @NotNull(message = "Status is required")
     private EmployeeStatus status;
 
     private String jobTitle;
