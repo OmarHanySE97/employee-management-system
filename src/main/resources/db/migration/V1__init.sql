@@ -1,1 +1,0 @@
--- Initial Flyway baseline placeholder.
