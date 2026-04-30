@@ -1,12 +1,12 @@
 package com.example.employeemanagement.exception;
 
+import com.example.employeemanagement.filter.CorrelationIdFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -21,8 +21,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
-    private static final String CORRELATION_ID_ATTRIBUTE = "correlationId";
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(
@@ -207,20 +205,18 @@ public class GlobalExceptionHandler {
     }
 
     private String resolveCorrelationId(HttpServletRequest request) {
-        Object correlationId = request.getAttribute(CORRELATION_ID_ATTRIBUTE);
+        Object correlationId = request.getAttribute(CorrelationIdFilter.REQUEST_ATTRIBUTE);
         if (correlationId instanceof String value && !value.isBlank()) {
             return value;
         }
 
-        String headerCorrelationId = request.getHeader("X-Correlation-Id");
+        String headerCorrelationId = request.getHeader(CorrelationIdFilter.HEADER_NAME);
         if (headerCorrelationId != null && !headerCorrelationId.isBlank()) {
-            request.setAttribute(CORRELATION_ID_ATTRIBUTE, headerCorrelationId);
+            request.setAttribute(CorrelationIdFilter.REQUEST_ATTRIBUTE, headerCorrelationId);
             return headerCorrelationId;
         }
 
-        String generatedCorrelationId = UUID.randomUUID().toString();
-        request.setAttribute(CORRELATION_ID_ATTRIBUTE, generatedCorrelationId);
-        return generatedCorrelationId;
+        return null;
     }
 
     private String extractFieldName(ConstraintViolation<?> violation) {
