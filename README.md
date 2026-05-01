@@ -114,7 +114,21 @@ The schema includes uniqueness constraints, foreign keys, check constraints, and
 
 ## How to Run with Docker Compose
 
+Prerequisites:
+
+- Docker Desktop or Docker Engine
+- Git
+
+Steps:
+
+1. Clone the repository.
+2. Checkout the `develop` branch.
+3. Run the application stack with Docker Compose.
+
 ```bash
+git clone https://github.com/OmarHanySE97/employee-management-system.git
+cd employee-management-system
+git checkout develop
 docker compose up --build
 ```
 
@@ -125,10 +139,38 @@ This starts:
 
 Flyway migrations run automatically on startup inside Docker.
 The Docker setup runs the application with the `dev` profile.
+After startup, the application will be available at `http://localhost:8080`.
 
 ## How to Run Locally
 
-Make sure PostgreSQL is running and accessible, then start the app with:
+Prerequisites:
+
+- Java 17 or later
+- Maven 3.9 or later
+- PostgreSQL
+- Git
+
+Steps:
+
+1. Clone the repository.
+2. Checkout the `develop` branch.
+3. Create the PostgreSQL database.
+4. Make sure PostgreSQL is running on `localhost:5432`.
+5. Start the application with Maven.
+
+```bash
+git clone https://github.com/OmarHanySE97/employee-management-system.git
+cd employee-management-system
+git checkout develop
+```
+
+Create the local database:
+
+```sql
+CREATE DATABASE employee_management;
+```
+
+Then run the application:
 
 ```bash
 mvn spring-boot:run
@@ -139,6 +181,8 @@ The application defaults to the `local` profile, which uses:
 - `jdbc:postgresql://localhost:5432/employee_management`
 - username `postgres`
 - password `12345`
+
+After startup, the application will be available at `http://localhost:8080`.
 
 To run explicitly with the `dev` profile:
 
