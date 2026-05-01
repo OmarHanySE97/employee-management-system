@@ -1,11 +1,17 @@
 package com.example.employeemanagement.validation;
 
+import com.example.employeemanagement.dto.request.BulkEmployeeStatusUpdateRequest;
+import com.example.employeemanagement.dto.request.EmployeeCreateRequest;
 import com.example.employeemanagement.entity.Department;
 import com.example.employeemanagement.entity.Employee;
 import com.example.employeemanagement.enums.EmployeeStatus;
 import com.example.employeemanagement.exception.BusinessException;
 import com.example.employeemanagement.exception.DuplicateResourceException;
 import com.example.employeemanagement.exception.ResourceNotFoundException;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
+import java.util.Comparator;
+import java.util.List;
 import com.example.employeemanagement.repository.DepartmentRepository;
 import com.example.employeemanagement.repository.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +25,35 @@ public class EmployeeValidator {
 
     private final EmployeeRepository employeeRepository;
     private final DepartmentRepository departmentRepository;
+    private final Validator beanValidator;
+
+    public List<String> validateBulkCreateRequest(EmployeeCreateRequest request) {
+        if (request == null) {
+            return List.of("Employee request must not be null");
+        }
+
+        return beanValidator.validate(request)
+                .stream()
+                .sorted(Comparator.comparing((ConstraintViolation<EmployeeCreateRequest> violation) ->
+                                violation.getPropertyPath().toString())
+                        .thenComparing(ConstraintViolation::getMessage))
+                .map(ConstraintViolation::getMessage)
+                .toList();
+    }
+
+    public void validateBulkStatusUpdateRequest(BulkEmployeeStatusUpdateRequest request) {
+        if (request == null) {
+            throw new BusinessException("Bulk employee status update request is required");
+        }
+
+        if (request.getEmployeeIds() == null || request.getEmployeeIds().isEmpty()) {
+            throw new BusinessException("Employee ids are required");
+        }
+
+        if (request.getStatus() == null) {
+            throw new BusinessException("Status is required");
+        }
+    }
 
     public void validateEmailUniqueness(String email) {
         if (employeeRepository.existsByEmailIgnoreCase(email)) {

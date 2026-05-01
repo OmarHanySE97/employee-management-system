@@ -1,13 +1,18 @@
 package com.example.employeemanagement.service.impl;
 
 import com.example.employeemanagement.dto.filter.EmployeeFilterRequest;
+import com.example.employeemanagement.dto.request.BulkEmployeeStatusUpdateRequest;
 import com.example.employeemanagement.dto.request.EmployeeCreateRequest;
 import com.example.employeemanagement.dto.request.EmployeeStatusUpdateRequest;
 import com.example.employeemanagement.dto.request.EmployeeUpdateRequest;
+import com.example.employeemanagement.dto.response.BulkOperationErrorResponse;
+import com.example.employeemanagement.dto.response.BulkOperationResponse;
 import com.example.employeemanagement.dto.response.EmployeeResponse;
 import com.example.employeemanagement.entity.Department;
 import com.example.employeemanagement.entity.Employee;
 import com.example.employeemanagement.enums.EmployeeStatus;
+import com.example.employeemanagement.exception.BusinessException;
+import com.example.employeemanagement.exception.ResourceNotFoundException;
 import com.example.employeemanagement.mapper.EmployeeMapper;
 import com.example.employeemanagement.repository.EmployeeRepository;
 import com.example.employeemanagement.service.EmployeeService;
@@ -17,11 +22,16 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 
 @Slf4j
@@ -33,6 +43,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final EmployeeMapper employeeMapper;
     private final EmployeeValidator employeeValidator;
+    private final PlatformTransactionManager transactionManager;
 
     @Override
     @Transactional
@@ -61,6 +72,49 @@ public class EmployeeServiceImpl implements EmployeeService {
                 savedEmployee.getStatus());
 
         return employeeMapper.toResponse(savedEmployee);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public BulkOperationResponse bulkCreateEmployees(List<EmployeeCreateRequest> requests) {
+        if (requests == null) {
+            throw new BusinessException("Employee requests are required");
+        }
+
+        List<BulkOperationErrorResponse> errors = new ArrayList<>();
+        int successCount = 0;
+        TransactionTemplate transactionTemplate = createRequiresNewTransactionTemplate();
+
+        for (int index = 0; index < requests.size(); index++) {
+            EmployeeCreateRequest request = requests.get(index);
+            String identifier = resolveBulkCreateIdentifier(request, index);
+            List<String> validationErrors = employeeValidator.validateBulkCreateRequest(request);
+
+            if (!validationErrors.isEmpty()) {
+                errors.add(new BulkOperationErrorResponse(identifier, String.join(", ", validationErrors)));
+                continue;
+            }
+
+            try {
+                transactionTemplate.executeWithoutResult(status -> createEmployee(request));
+                successCount++;
+            } catch (ResourceNotFoundException
+                     | BusinessException
+                     | DataIntegrityViolationException exception) {
+                errors.add(new BulkOperationErrorResponse(identifier, resolveBulkOperationReason(exception)));
+            } catch (Exception exception) {
+                log.error("Unexpected error during bulk employee creation: identifier={}", identifier, exception);
+                errors.add(new BulkOperationErrorResponse(identifier, "Unexpected error occurred"));
+            }
+        }
+
+        BulkOperationResponse response = new BulkOperationResponse(successCount, errors.size(), errors);
+        log.info("Bulk employee creation completed: requested={}, successCount={}, failedCount={}",
+                requests.size(),
+                response.getSuccessCount(),
+                response.getFailedCount());
+
+        return response;
     }
 
     @Override
@@ -121,6 +175,49 @@ public class EmployeeServiceImpl implements EmployeeService {
                 savedEmployee.getStatus());
 
         return employeeMapper.toResponse(savedEmployee);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public BulkOperationResponse bulkUpdateEmployeeStatus(BulkEmployeeStatusUpdateRequest request) {
+        employeeValidator.validateBulkStatusUpdateRequest(request);
+
+        List<BulkOperationErrorResponse> errors = new ArrayList<>();
+        int successCount = 0;
+        TransactionTemplate transactionTemplate = createRequiresNewTransactionTemplate();
+        EmployeeStatusUpdateRequest statusUpdateRequest = new EmployeeStatusUpdateRequest(request.getStatus());
+
+        for (Long employeeId : request.getEmployeeIds()) {
+            if (employeeId == null) {
+                errors.add(new BulkOperationErrorResponse("null", "Employee id must not be null"));
+                continue;
+            }
+
+            String identifier = String.valueOf(employeeId);
+
+            try {
+                transactionTemplate.executeWithoutResult(status ->
+                        changeEmployeeStatus(employeeId, statusUpdateRequest)
+                );
+                successCount++;
+            } catch (ResourceNotFoundException
+                     | BusinessException
+                     | DataIntegrityViolationException exception) {
+                errors.add(new BulkOperationErrorResponse(identifier, resolveBulkOperationReason(exception)));
+            } catch (Exception exception) {
+                log.error("Unexpected error during bulk employee status update: employeeId={}", employeeId, exception);
+                errors.add(new BulkOperationErrorResponse(identifier, "Unexpected error occurred"));
+            }
+        }
+
+        BulkOperationResponse response = new BulkOperationResponse(successCount, errors.size(), errors);
+        log.info("Bulk employee status update completed: requested={}, successCount={}, failedCount={}, targetStatus={}",
+                request.getEmployeeIds().size(),
+                response.getSuccessCount(),
+                response.getFailedCount(),
+                request.getStatus());
+
+        return response;
     }
 
     @Override
@@ -206,5 +303,30 @@ public class EmployeeServiceImpl implements EmployeeService {
             return null;
         }
         return value.trim();
+    }
+
+    private TransactionTemplate createRequiresNewTransactionTemplate() {
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        return transactionTemplate;
+    }
+
+    private String resolveBulkCreateIdentifier(EmployeeCreateRequest request, int index) {
+        if (request != null && StringUtils.hasText(request.getEmail())) {
+            return request.getEmail().trim();
+        }
+        return "row-" + (index + 1);
+    }
+
+    private String resolveBulkOperationReason(Exception exception) {
+        if (exception instanceof DataIntegrityViolationException) {
+            return "The request could not be completed because it conflicts with existing data";
+        }
+
+        if (exception.getMessage() != null && !exception.getMessage().isBlank()) {
+            return exception.getMessage();
+        }
+
+        return "Unexpected error occurred";
     }
 }

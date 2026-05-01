@@ -11,7 +11,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class BulkOperationErrorResponse {
 
-    private Long itemId;
+    private String identifier;
 
-    private String message;
+    private String reason;
 }

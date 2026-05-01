@@ -14,6 +14,7 @@ import com.example.employeemanagement.filter.CorrelationIdFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -160,6 +161,71 @@ class EmployeeControllerIntegrationTest {
     }
 
     @Test
+    void shouldBulkCreateEmployeesWithPartialSuccess() throws Exception {
+        insertEmployee("Existing", "User", "existing@example.com", "ACTIVE", "Engineer", "ENG",
+                LocalDate.of(2024, 1, 10), BigDecimal.valueOf(12000));
+
+        List<Map<String, Object>> request = List.of(
+                Map.of(
+                        "firstName", "Omar",
+                        "lastName", "Hany",
+                        "email", "omar.bulk@example.com",
+                        "phoneNumber", "+201000000000",
+                        "hireDate", "2024-01-01",
+                        "salary", 15000,
+                        "status", "ACTIVE",
+                        "jobTitle", "Backend Developer",
+                        "departmentId", getDepartmentIdByCode("ENG")
+                ),
+                Map.of(
+                        "firstName", "Existing",
+                        "lastName", "User",
+                        "email", "existing@example.com",
+                        "hireDate", "2024-02-01",
+                        "salary", 13000,
+                        "departmentId", getDepartmentIdByCode("HR")
+                ),
+                Map.of(
+                        "firstName", "No",
+                        "lastName", "Department",
+                        "email", "missing.department@example.com",
+                        "hireDate", "2024-03-01",
+                        "salary", 11000,
+                        "departmentId", 9999
+                ),
+                Map.of(
+                        "firstName", "Future",
+                        "lastName", "Hire",
+                        "email", "future.hire@example.com",
+                        "hireDate", "2099-01-01",
+                        "salary", 9000,
+                        "departmentId", getDepartmentIdByCode("FIN")
+                )
+        );
+
+        mockMvc.perform(post("/api/v1/employees/bulk")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(header().exists(CorrelationIdFilter.HEADER_NAME))
+                .andExpect(jsonPath("$.successCount").value(1))
+                .andExpect(jsonPath("$.failedCount").value(3))
+                .andExpect(jsonPath("$.errors", hasSize(3)))
+                .andExpect(jsonPath("$.errors[0].identifier").value("existing@example.com"))
+                .andExpect(jsonPath("$.errors[0].reason").value("Employee email already exists"))
+                .andExpect(jsonPath("$.errors[1].identifier").value("missing.department@example.com"))
+                .andExpect(jsonPath("$.errors[1].reason").value("Department not found with id: 9999"))
+                .andExpect(jsonPath("$.errors[2].identifier").value("future.hire@example.com"))
+                .andExpect(jsonPath("$.errors[2].reason").value("Hire date must be in the past or present"));
+
+        mockMvc.perform(get("/api/v1/employees")
+                        .param("keyword", "omar.bulk@example.com"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].email").value("omar.bulk@example.com"));
+    }
+
+    @Test
     void shouldReturnEmployeesWithPaginationSortingAndDepartment() throws Exception {
         insertEmployee("Omar", "Hassan", "omar@example.com", "ACTIVE", "Engineer", "ENG",
                 LocalDate.of(2024, 1, 10), BigDecimal.valueOf(12000));
@@ -249,6 +315,46 @@ class EmployeeControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(Map.of("status", "ON_LEAVE"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ON_LEAVE"));
+    }
+
+    @Test
+    void shouldBulkUpdateEmployeeStatusWithPartialSuccess() throws Exception {
+        long activeEmployeeId = insertEmployee("Omar", "Hassan", "omar@example.com", "ACTIVE", "Backend Engineer", "ENG",
+                LocalDate.of(2024, 1, 10), BigDecimal.valueOf(12000));
+        long onLeaveEmployeeId = insertEmployee("Laila", "Fathy", "laila@example.com", "ON_LEAVE", "HR Specialist", "HR",
+                LocalDate.of(2023, 7, 20), BigDecimal.valueOf(8000));
+        long terminatedEmployeeId = insertEmployee("Mina", "Nader", "mina@example.com", "TERMINATED", "Analyst", "FIN",
+                LocalDate.of(2022, 5, 15), BigDecimal.valueOf(9500));
+
+        Map<String, Object> request = Map.of(
+                "employeeIds", List.of(activeEmployeeId, onLeaveEmployeeId, 9999L, terminatedEmployeeId),
+                "status", "ACTIVE"
+        );
+
+        mockMvc.perform(patch("/api/v1/employees/bulk/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(header().exists(CorrelationIdFilter.HEADER_NAME))
+                .andExpect(jsonPath("$.successCount").value(2))
+                .andExpect(jsonPath("$.failedCount").value(2))
+                .andExpect(jsonPath("$.errors", hasSize(2)))
+                .andExpect(jsonPath("$.errors[0].identifier").value("9999"))
+                .andExpect(jsonPath("$.errors[0].reason").value("Employee not found with id: 9999"))
+                .andExpect(jsonPath("$.errors[1].identifier").value(String.valueOf(terminatedEmployeeId)))
+                .andExpect(jsonPath("$.errors[1].reason").value("Terminated employee cannot be reactivated"));
+
+        mockMvc.perform(get("/api/v1/employees/{id}", activeEmployeeId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+
+        mockMvc.perform(get("/api/v1/employees/{id}", onLeaveEmployeeId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+
+        mockMvc.perform(get("/api/v1/employees/{id}", terminatedEmployeeId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("TERMINATED"));
     }
 
     @Test

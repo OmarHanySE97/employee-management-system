@@ -12,11 +12,9 @@ import lombok.Setter;
 @AllArgsConstructor
 public class BulkOperationResponse {
 
-    private int totalRequested;
-
     private int successCount;
 
-    private int failureCount;
+    private int failedCount;
 
     private List<BulkOperationErrorResponse> errors;
 }
