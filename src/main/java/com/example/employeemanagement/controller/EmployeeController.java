@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -35,6 +36,7 @@ public class EmployeeController {
     private final EmployeeService employeeService;
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public ResponseEntity<EmployeeResponse> createEmployee(
             @Valid @RequestBody EmployeeCreateRequest request
     ) {
@@ -43,6 +45,7 @@ public class EmployeeController {
     }
 
     @PostMapping("/bulk")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public ResponseEntity<BulkOperationResponse> bulkCreateEmployees(
             @RequestBody List<EmployeeCreateRequest> requests
     ) {
@@ -50,6 +53,7 @@ public class EmployeeController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR', 'VIEWER')")
     public ResponseEntity<Page<EmployeeResponse>> getEmployees(
             @Valid @ModelAttribute EmployeeFilterRequest filterRequest,
             @PageableDefault(sort = "id") Pageable pageable
@@ -58,11 +62,13 @@ public class EmployeeController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR', 'VIEWER')")
     public ResponseEntity<EmployeeResponse> getEmployeeById(@PathVariable Long id) {
         return ResponseEntity.ok(employeeService.getEmployeeById(id));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public ResponseEntity<EmployeeResponse> updateEmployee(
             @PathVariable Long id,
             @Valid @RequestBody EmployeeUpdateRequest request
@@ -71,6 +77,7 @@ public class EmployeeController {
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public ResponseEntity<EmployeeResponse> changeEmployeeStatus(
             @PathVariable Long id,
             @Valid @RequestBody EmployeeStatusUpdateRequest request
@@ -79,13 +86,15 @@ public class EmployeeController {
     }
 
     @PatchMapping("/bulk/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public ResponseEntity<BulkOperationResponse> bulkUpdateEmployeeStatus(
-            @RequestBody BulkEmployeeStatusUpdateRequest request
+            @Valid @RequestBody BulkEmployeeStatusUpdateRequest request
     ) {
         return ResponseEntity.ok(employeeService.bulkUpdateEmployeeStatus(request));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public ResponseEntity<Void> deleteEmployee(@PathVariable Long id) {
         employeeService.deleteEmployee(id);
         return ResponseEntity.noContent().build();
