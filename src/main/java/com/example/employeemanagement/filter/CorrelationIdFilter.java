@@ -13,6 +13,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+/**
+ * Ensures each request has a correlation identifier available in the response, request, and MDC.
+ */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class CorrelationIdFilter extends OncePerRequestFilter {
@@ -21,6 +24,15 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
     public static final String MDC_KEY = "correlationId";
     public static final String REQUEST_ATTRIBUTE = "correlationId";
 
+    /**
+     * Resolves, stores, and propagates the correlation identifier for the current request.
+     *
+     * @param request the current HTTP request
+     * @param response the current HTTP response
+     * @param filterChain the remaining filter chain
+     * @throws ServletException if servlet-level request processing fails
+     * @throws IOException if request or response I/O fails
+     */
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -40,6 +52,12 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
         }
     }
 
+    /**
+     * Resolves the incoming correlation identifier or generates a new UUID when missing.
+     *
+     * @param request the current HTTP request
+     * @return the resolved correlation identifier
+     */
     private String resolveCorrelationId(HttpServletRequest request) {
         String correlationId = request.getHeader(HEADER_NAME);
         if (StringUtils.hasText(correlationId)) {

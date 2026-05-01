@@ -28,6 +28,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST controller for employee management, filtering, and bulk operations.
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/employees")
@@ -35,6 +38,12 @@ public class EmployeeController {
 
     private final EmployeeService employeeService;
 
+    /**
+     * Creates a single employee record.
+     *
+     * @param request the employee creation payload
+     * @return the created employee response
+     */
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public ResponseEntity<EmployeeResponse> createEmployee(
@@ -44,6 +53,12 @@ public class EmployeeController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    /**
+     * Processes a batch of employee creation requests with partial success support.
+     *
+     * @param requests the employee creation payloads
+     * @return the bulk operation summary
+     */
     @PostMapping("/bulk")
     @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public ResponseEntity<BulkOperationResponse> bulkCreateEmployees(
@@ -52,6 +67,13 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.bulkCreateEmployees(requests));
     }
 
+    /**
+     * Retrieves employees using pagination, sorting, and optional filters.
+     *
+     * @param filterRequest filter criteria bound from query parameters
+     * @param pageable paging and sorting configuration
+     * @return a page of employee responses
+     */
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'HR', 'VIEWER')")
     public ResponseEntity<Page<EmployeeResponse>> getEmployees(
@@ -61,12 +83,25 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.getEmployees(filterRequest, pageable));
     }
 
+    /**
+     * Retrieves a single employee by identifier.
+     *
+     * @param id the employee identifier
+     * @return the employee response
+     */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'HR', 'VIEWER')")
     public ResponseEntity<EmployeeResponse> getEmployeeById(@PathVariable Long id) {
         return ResponseEntity.ok(employeeService.getEmployeeById(id));
     }
 
+    /**
+     * Updates an existing employee record.
+     *
+     * @param id the employee identifier
+     * @param request the employee update payload
+     * @return the updated employee response
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public ResponseEntity<EmployeeResponse> updateEmployee(
@@ -76,6 +111,13 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.updateEmployee(id, request));
     }
 
+    /**
+     * Changes the status of a single employee.
+     *
+     * @param id the employee identifier
+     * @param request the requested status change
+     * @return the updated employee response
+     */
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public ResponseEntity<EmployeeResponse> changeEmployeeStatus(
@@ -85,6 +127,12 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.changeEmployeeStatus(id, request));
     }
 
+    /**
+     * Processes a batch employee status update with partial success support.
+     *
+     * @param request the bulk status update payload
+     * @return the bulk operation summary
+     */
     @PatchMapping("/bulk/status")
     @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public ResponseEntity<BulkOperationResponse> bulkUpdateEmployeeStatus(
@@ -93,6 +141,12 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.bulkUpdateEmployeeStatus(request));
     }
 
+    /**
+     * Soft-deletes an employee by moving the status to terminated.
+     *
+     * @param id the employee identifier
+     * @return an empty response with no-content status
+     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'HR')")
     public ResponseEntity<Void> deleteEmployee(@PathVariable Long id) {

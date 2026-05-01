@@ -12,17 +12,16 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 
+/**
+ * Employee entity representing an individual staff member.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
-@ToString(callSuper = true, exclude = "department")
-@EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(
         name = "employees",
@@ -60,4 +59,23 @@ public class Employee extends BaseAuditableEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "department_id", nullable = false)
     private Department department;
+
+    /**
+     * Returns a safe string representation for debugging and logs without traversing relationships.
+     *
+     * @return the employee summary string
+     */
+    @Override
+    public String toString() {
+        return "Employee{"
+                + "id=" + getId()
+                + ", firstName='" + firstName + '\''
+                + ", lastName='" + lastName + '\''
+                + ", email='" + email + '\''
+                + ", hireDate=" + hireDate
+                + ", salary=" + salary
+                + ", status=" + status
+                + ", jobTitle='" + jobTitle + '\''
+                + '}';
+    }
 }

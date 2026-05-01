@@ -1,0 +1,665 @@
+﻿{
+    "info":  {
+                 "_postman_id":  "e1c03446-cb53-4cc9-95db-dbdbc348e2b7",
+                 "name":  "Employee Management System",
+                 "description":  "Postman collection for the Employee Management System Spring Boot API.",
+                 "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+             },
+    "item":  [
+                 {
+                     "name":  "Auth",
+                     "item":  [
+                                  {
+                                      "name":  "Register",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"username\": \"admin\",\n  \"password\": \"Admin@123\",\n  \"role\": \"ADMIN\"\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               }
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/auth/register",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "auth",
+                                                                               "register"
+                                                                           ]
+                                                              },
+                                                      "description":  "Register a new user."
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Login",
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "exec":  [
+                                                                                    "pm.test(\"Login returns an access token\", function () {",
+                                                                                    "    pm.response.to.have.status(200);",
+                                                                                    "    var jsonData = pm.response.json();",
+                                                                                    "    pm.expect(jsonData.accessToken).to.be.a(\"string\").and.not.empty;",
+                                                                                    "    pm.expect(jsonData.tokenType).to.eql(\"Bearer\");",
+                                                                                    "    pm.collectionVariables.set(\"token\", jsonData.accessToken);",
+                                                                                    "});"
+                                                                                ],
+                                                                       "type":  "text/javascript"
+                                                                   }
+                                                    }
+                                                ],
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"username\": \"admin\",\n  \"password\": \"Admin@123\"\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               }
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/auth/login",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "auth",
+                                                                               "login"
+                                                                           ]
+                                                              },
+                                                      "description":  "Authenticate and automatically save the returned JWT token into the collection variable named token."
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "Departments",
+                     "item":  [
+                                  {
+                                      "name":  "Create Department",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"name\": \"Marketing Department\",\n  \"code\": \"MD\",\n  \"description\": \"Marketing Department\"\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               }
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/departments",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "departments"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Get Departments",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/departments?page=0\u0026size=10\u0026sort=name,asc",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "departments"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "page",
+                                                                                    "value":  "0"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "size",
+                                                                                    "value":  "10"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "sort",
+                                                                                    "value":  "name,asc"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Get Department By ID",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/departments/:departmentId",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "departments",
+                                                                               ":departmentId"
+                                                                           ],
+                                                                  "variable":  [
+                                                                                   {
+                                                                                       "key":  "departmentId",
+                                                                                       "value":  "6"
+                                                                                   }
+                                                                               ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Update Department",
+                                      "request":  {
+                                                      "method":  "PUT",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"name\": \"Engineering Updated\",\n  \"code\": \"ENG-UPD\",\n  \"description\": \"Updated description\"\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               }
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/departments/:departmentId",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "departments",
+                                                                               ":departmentId"
+                                                                           ],
+                                                                  "variable":  [
+                                                                                   {
+                                                                                       "key":  "departmentId",
+                                                                                       "value":  "1"
+                                                                                   }
+                                                                               ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Delete Department",
+                                      "request":  {
+                                                      "method":  "DELETE",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/departments/:departmentId",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "departments",
+                                                                               ":departmentId"
+                                                                           ],
+                                                                  "variable":  [
+                                                                                   {
+                                                                                       "key":  "departmentId",
+                                                                                       "value":  "5"
+                                                                                   }
+                                                                               ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ],
+                     "auth":  {
+                                  "type":  "bearer",
+                                  "bearer":  [
+                                                 {
+                                                     "key":  "token",
+                                                     "value":  "{{token}}",
+                                                     "type":  "string"
+                                                 }
+                                             ]
+                              }
+                 },
+                 {
+                     "name":  "Employees",
+                     "item":  [
+                                  {
+                                      "name":  "Create Employee",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"firstName\": \"Omar\",\n  \"lastName\": \"Hany\",\n  \"email\": \"omar.hany1@example.com\",\n  \"phoneNumber\": \"+201113697836\",\n  \"hireDate\": \"2026-01-01\",\n  \"salary\": 70000,\n  \"status\": \"ACTIVE\",\n  \"jobTitle\": \"Senior Backend Developer\",\n  \"departmentId\": 1\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               }
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/employees",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "employees"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Get Employees",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/employees?page=0\u0026size=10\u0026sort=hireDate,desc",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "employees"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "page",
+                                                                                    "value":  "0"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "size",
+                                                                                    "value":  "10"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "sort",
+                                                                                    "value":  "hireDate,desc"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Get Employees With Filters",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/employees?status=ACTIVE\u0026departmentId=1\u0026keyword=omar\u0026minSalary=5000\u0026maxSalary=70000\u0026hireDateFrom=2026-01-01\u0026hireDateTo=2027-12-31",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "employees"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "status",
+                                                                                    "value":  "ACTIVE"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "departmentId",
+                                                                                    "value":  "1"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "keyword",
+                                                                                    "value":  "omar"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "minSalary",
+                                                                                    "value":  "5000"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "maxSalary",
+                                                                                    "value":  "70000"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "hireDateFrom",
+                                                                                    "value":  "2026-01-01"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "hireDateTo",
+                                                                                    "value":  "2027-12-31"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Get Employee By ID",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/employees/:employeeId",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "employees",
+                                                                               ":employeeId"
+                                                                           ],
+                                                                  "variable":  [
+                                                                                   {
+                                                                                       "key":  "employeeId",
+                                                                                       "value":  "5"
+                                                                                   }
+                                                                               ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Update Employee",
+                                      "request":  {
+                                                      "method":  "PUT",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"firstName\": \"Omar\",\n  \"lastName\": \"Hany Updated\",\n  \"email\": \"omar.updated@example.com\",\n  \"phoneNumber\": \"+201011111111\",\n  \"hireDate\": \"2024-01-01\",\n  \"salary\": 18000,\n  \"status\": \"ON_LEAVE\",\n  \"jobTitle\": \"Senior Backend Developer\",\n  \"departmentId\": 1\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               }
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/employees/:employeeId",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "employees",
+                                                                               ":employeeId"
+                                                                           ],
+                                                                  "variable":  [
+                                                                                   {
+                                                                                       "key":  "employeeId",
+                                                                                       "value":  "1"
+                                                                                   }
+                                                                               ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Change Employee Status",
+                                      "request":  {
+                                                      "method":  "PATCH",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"status\": \"INACTIVE\"\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               }
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/employees/:employeeId/status",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "employees",
+                                                                               ":employeeId",
+                                                                               "status"
+                                                                           ],
+                                                                  "variable":  [
+                                                                                   {
+                                                                                       "key":  "employeeId",
+                                                                                       "value":  "1"
+                                                                                   }
+                                                                               ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Delete Employee",
+                                      "request":  {
+                                                      "method":  "DELETE",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/employees/:employeeId",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "employees",
+                                                                               ":employeeId"
+                                                                           ],
+                                                                  "variable":  [
+                                                                                   {
+                                                                                       "key":  "employeeId",
+                                                                                       "value":  "1"
+                                                                                   }
+                                                                               ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Bulk Create Employees",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "[\n    {\n        \"firstName\": \"Omar\",\n        \"lastName\": \"Hany\",\n        \"email\": \"email.1@example.com\",\n        \"phoneNumber\": \"+201000000000\",\n        \"hireDate\": \"2024-01-01\",\n        \"salary\": 15000,\n        \"status\": \"ACTIVE\",\n        \"jobTitle\": \"Backend Developer\",\n        \"departmentId\": 1\n    },\n    {\n        \"firstName\": \"Mona\",\n        \"lastName\": \"Ali\",\n        \"email\": \"email.2@example.com\",\n        \"phoneNumber\": \"+201000000001\",\n        \"hireDate\": \"2024-02-01\",\n        \"salary\": 13000,\n        \"status\": \"ON_LEAVE\",\n        \"jobTitle\": \"Business Analyst\",\n        \"departmentId\": 2\n    },\n    {\n        \"firstName\": \"Ahmed\",\n        \"lastName\": \"Yasser\",\n        \"email\": \"email.3@example.com\",\n        \"phoneNumber\": \"+201000000001\",\n        \"hireDate\": \"2024-02-01\",\n        \"salary\": 13000,\n        \"status\": \"ACTIVE\",\n        \"jobTitle\": \"Data Analyst\",\n        \"departmentId\": 3\n    },\n        {\n        \"firstName\": \"Mohamed\",\n        \"lastName\": \"Ibrahim\",\n        \"email\": \"email.4@example.com\",\n        \"phoneNumber\": \"+201000000001\",\n        \"hireDate\": \"2024-02-01\",\n        \"salary\": 130000,\n        \"status\": \"ACTIVE\",\n        \"jobTitle\": \"Data Analyst\",\n        \"departmentId\": 3\n    }\n]",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               }
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/employees/bulk",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "employees",
+                                                                               "bulk"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "Bulk Status Update",
+                                      "request":  {
+                                                      "method":  "PATCH",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"employeeIds\": [1, 2, 3],\n  \"status\": \"ACTIVE\"\n}",
+                                                                   "options":  {
+                                                                                   "raw":  {
+                                                                                               "language":  "json"
+                                                                                           }
+                                                                               }
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/v1/employees/bulk/status",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "v1",
+                                                                               "employees",
+                                                                               "bulk",
+                                                                               "status"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ],
+                     "auth":  {
+                                  "type":  "bearer",
+                                  "bearer":  [
+                                                 {
+                                                     "key":  "token",
+                                                     "value":  "{{token}}",
+                                                     "type":  "string"
+                                                 }
+                                             ]
+                              }
+                 }
+             ],
+    "variable":  [
+                     {
+                         "key":  "baseUrl",
+                         "value":  "http://localhost:8080",
+                         "type":  "string"
+                     },
+                     {
+                         "key":  "token",
+                         "value":  "",
+                         "type":  "string"
+                     }
+                 ]
+}

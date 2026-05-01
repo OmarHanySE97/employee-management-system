@@ -1,9 +1,9 @@
 INSERT INTO departments (name, code, description, created_at, updated_at)
 VALUES
-    ('Engineering', 'ENG', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('Human Resources', 'HR', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('Finance', 'FIN', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('Operations', 'OPS', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+    ('Engineering', 'ENG', 'Engineering department', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Human Resources', 'HR', 'Human Resources department', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Finance', 'FIN', 'Finance department', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('Operations', 'OPS', 'Operations department', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 INSERT INTO users (username, password, role, created_at, updated_at)
 VALUES

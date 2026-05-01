@@ -15,6 +15,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+/**
+ * Extracts JWT bearer tokens from requests and establishes the Spring Security context.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -26,6 +29,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserDetailsServiceImpl userDetailsService;
 
+    /**
+     * Attempts JWT authentication for the current request and continues the filter chain.
+     *
+     * @param request the current HTTP request
+     * @param response the current HTTP response
+     * @param filterChain the remaining filter chain
+     * @throws ServletException if servlet-level request processing fails
+     * @throws IOException if request or response I/O fails
+     */
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,

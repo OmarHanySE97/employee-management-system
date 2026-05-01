@@ -18,6 +18,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Default implementation of authentication and registration use cases.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -31,6 +34,12 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
 
+    /**
+     * Registers a new user after ensuring the username is unique.
+     *
+     * @param request the registration payload
+     * @return the authentication response for the created user
+     */
     @Override
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -54,6 +63,12 @@ public class AuthServiceImpl implements AuthService {
         return new AuthResponse(token, TOKEN_TYPE);
     }
 
+    /**
+     * Authenticates a user and returns a JWT access token.
+     *
+     * @param request the login payload
+     * @return the authentication response for the authenticated user
+     */
     @Override
     public AuthResponse login(LoginRequest request) {
         String username = normalizeRequiredValue(request.getUsername());
@@ -68,6 +83,12 @@ public class AuthServiceImpl implements AuthService {
         return new AuthResponse(token, TOKEN_TYPE);
     }
 
+    /**
+     * Adapts the persisted user entity to Spring Security's {@link UserDetails} model.
+     *
+     * @param user the persisted user entity
+     * @return the corresponding user details instance
+     */
     private UserDetails buildUserDetails(User user) {
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getUsername())
@@ -76,6 +97,12 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    /**
+     * Trims a required string value before persistence or lookup.
+     *
+     * @param value the raw input value
+     * @return the trimmed value
+     */
     private String normalizeRequiredValue(String value) {
         return value.trim();
     }

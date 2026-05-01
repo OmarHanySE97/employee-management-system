@@ -13,11 +13,19 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.method.HandlerMethod;
 
+/**
+ * Configures OpenAPI metadata, JWT security documentation, and actuator info details.
+ */
 @Configuration
 public class OpenApiConfig {
 
     private static final String SECURITY_SCHEME_NAME = "bearerAuth";
 
+    /**
+     * Builds the base OpenAPI definition exposed through Springdoc.
+     *
+     * @return the configured OpenAPI model
+     */
     @Bean
     OpenAPI employeeManagementOpenApi() {
         return new OpenAPI()
@@ -36,6 +44,11 @@ public class OpenApiConfig {
                         ));
     }
 
+    /**
+     * Applies JWT bearer security requirements to documented endpoints except authentication APIs.
+     *
+     * @return an operation customizer that enriches secured operations
+     */
     @Bean
     OperationCustomizer jwtSecurityOperationCustomizer() {
         return (Operation operation, HandlerMethod handlerMethod) -> {
@@ -47,6 +60,14 @@ public class OpenApiConfig {
         };
     }
 
+    /**
+     * Publishes application metadata to the actuator info endpoint.
+     *
+     * @param appName configured application name
+     * @param appVersion configured application version
+     * @param appDescription configured application description
+     * @return an info contributor for actuator
+     */
     @Bean
     InfoContributor applicationInfoContributor(
             @Value("${app.name}") String appName,
@@ -56,6 +77,9 @@ public class OpenApiConfig {
         return builder -> builder.withDetail("app", new AppInfo(appName, appVersion, appDescription));
     }
 
+    /**
+     * Immutable representation of application metadata exposed via actuator.
+     */
     private record AppInfo(String name, String version, String description) {
     }
 }

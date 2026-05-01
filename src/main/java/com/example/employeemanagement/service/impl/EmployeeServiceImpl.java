@@ -34,6 +34,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 
+/**
+ * Default implementation of employee management, filtering, and bulk operations.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -45,6 +48,12 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final EmployeeValidator employeeValidator;
     private final PlatformTransactionManager transactionManager;
 
+    /**
+     * Creates a single employee after validating uniqueness and department existence.
+     *
+     * @param request the employee creation payload
+     * @return the created employee response
+     */
     @Override
     @Transactional
     public EmployeeResponse createEmployee(EmployeeCreateRequest request) {
@@ -74,6 +83,12 @@ public class EmployeeServiceImpl implements EmployeeService {
         return employeeMapper.toResponse(savedEmployee);
     }
 
+    /**
+     * Processes employee creation requests independently to allow partial success.
+     *
+     * @param requests the employee creation payloads
+     * @return the bulk operation summary with per-record failures
+     */
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public BulkOperationResponse bulkCreateEmployees(List<EmployeeCreateRequest> requests) {
@@ -117,6 +132,13 @@ public class EmployeeServiceImpl implements EmployeeService {
         return response;
     }
 
+    /**
+     * Retrieves employees using the supplied filters, pagination, and sorting configuration.
+     *
+     * @param filterRequest the filter criteria
+     * @param pageable paging and sorting configuration
+     * @return a page of employee responses
+     */
     @Override
     public Page<EmployeeResponse> getEmployees(EmployeeFilterRequest filterRequest, Pageable pageable) {
         Specification<Employee> specification = buildSpecification(filterRequest);
@@ -124,11 +146,24 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .map(employeeMapper::toResponse);
     }
 
+    /**
+     * Retrieves a single employee by identifier.
+     *
+     * @param id the employee identifier
+     * @return the matching employee response
+     */
     @Override
     public EmployeeResponse getEmployeeById(Long id) {
         return employeeMapper.toResponse(employeeValidator.validateEmployeeExists(id));
     }
 
+    /**
+     * Updates an existing employee after uniqueness and department validation succeeds.
+     *
+     * @param id the employee identifier
+     * @param request the update payload
+     * @return the updated employee response
+     */
     @Override
     @Transactional
     public EmployeeResponse updateEmployee(Long id, EmployeeUpdateRequest request) {
@@ -158,6 +193,13 @@ public class EmployeeServiceImpl implements EmployeeService {
         return employeeMapper.toResponse(savedEmployee);
     }
 
+    /**
+     * Changes the status of a single employee while enforcing transition rules.
+     *
+     * @param id the employee identifier
+     * @param request the requested status update
+     * @return the updated employee response
+     */
     @Override
     @Transactional
     public EmployeeResponse changeEmployeeStatus(Long id, EmployeeStatusUpdateRequest request) {
@@ -177,6 +219,12 @@ public class EmployeeServiceImpl implements EmployeeService {
         return employeeMapper.toResponse(savedEmployee);
     }
 
+    /**
+     * Processes employee status updates independently to allow partial success.
+     *
+     * @param request the bulk status update payload
+     * @return the bulk operation summary with per-record failures
+     */
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public BulkOperationResponse bulkUpdateEmployeeStatus(BulkEmployeeStatusUpdateRequest request) {
@@ -220,6 +268,11 @@ public class EmployeeServiceImpl implements EmployeeService {
         return response;
     }
 
+    /**
+     * Soft-deletes an employee by setting the status to terminated.
+     *
+     * @param id the employee identifier
+     */
     @Override
     @Transactional
     public void deleteEmployee(Long id) {
@@ -235,6 +288,12 @@ public class EmployeeServiceImpl implements EmployeeService {
                 employee.getStatus());
     }
 
+    /**
+     * Builds the dynamic JPA specification used for employee filtering.
+     *
+     * @param filterRequest the requested filters
+     * @return the resulting employee specification
+     */
     private Specification<Employee> buildSpecification(EmployeeFilterRequest filterRequest) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -294,10 +353,22 @@ public class EmployeeServiceImpl implements EmployeeService {
         };
     }
 
+    /**
+     * Trims a required string value before persistence.
+     *
+     * @param value the raw input value
+     * @return the trimmed value
+     */
     private String normalizeRequiredValue(String value) {
         return value.trim();
     }
 
+    /**
+     * Trims an optional string value and converts blank input to {@code null}.
+     *
+     * @param value the raw input value
+     * @return the trimmed value or {@code null} when blank
+     */
     private String normalizeOptionalValue(String value) {
         if (!StringUtils.hasText(value)) {
             return null;
@@ -305,12 +376,24 @@ public class EmployeeServiceImpl implements EmployeeService {
         return value.trim();
     }
 
+    /**
+     * Creates a transaction template that executes each bulk item in a new transaction.
+     *
+     * @return a transaction template using {@code REQUIRES_NEW} propagation
+     */
     private TransactionTemplate createRequiresNewTransactionTemplate() {
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
         transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         return transactionTemplate;
     }
 
+    /**
+     * Resolves a stable identifier for bulk create error reporting.
+     *
+     * @param request the employee creation payload
+     * @param index the zero-based position in the request list
+     * @return the preferred identifier shown in error responses
+     */
     private String resolveBulkCreateIdentifier(EmployeeCreateRequest request, int index) {
         if (request != null && StringUtils.hasText(request.getEmail())) {
             return request.getEmail().trim();
@@ -318,6 +401,12 @@ public class EmployeeServiceImpl implements EmployeeService {
         return "row-" + (index + 1);
     }
 
+    /**
+     * Maps known exception types to safe bulk operation error messages.
+     *
+     * @param exception the exception raised while processing a bulk item
+     * @return the response-safe error reason
+     */
     private String resolveBulkOperationReason(Exception exception) {
         if (exception instanceof DataIntegrityViolationException) {
             return "The request could not be completed because it conflicts with existing data";
