@@ -6,6 +6,12 @@ Backend service for managing employees and departments.
 
 Employee Management System is a layered REST API built with Spring Boot for managing employees, departments, and application users. It includes JWT-based authentication, role-based authorization, structured validation, global error handling, observability endpoints, database migrations, Docker support, and automated tests.
 
+Before running the application, make sure you are on the `develop` branch:
+
+```bash
+git checkout develop
+```
+
 ## Tech Stack
 
 - Java 17
