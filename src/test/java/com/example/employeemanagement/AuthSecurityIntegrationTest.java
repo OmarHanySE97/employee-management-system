@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.employeemanagement.dto.response.AuthResponse;
@@ -145,6 +146,48 @@ class AuthSecurityIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(header().exists(CorrelationIdFilter.HEADER_NAME))
                 .andExpect(jsonPath("$.content").isArray());
+    }
+
+    @Test
+    void shouldExposeSwaggerUiPublicly() throws Exception {
+        mockMvc.perform(get("/swagger-ui/index.html"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Swagger UI")));
+    }
+
+    @Test
+    void shouldExposeApiDocsPublicly() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.info.title").value("Employee Management System API"))
+                .andExpect(jsonPath("$.info.version").value("1.0.0"))
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"));
+    }
+
+    @Test
+    void shouldExposeHealthEndpointPublicly() throws Exception {
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"));
+    }
+
+    @Test
+    void shouldRequireAuthenticationForActuatorInfo() throws Exception {
+        mockMvc.perform(get("/actuator/info"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void shouldExposeApplicationInfoForAuthenticatedUser() throws Exception {
+        String token = authenticate("admin", "Admin@123");
+
+        mockMvc.perform(get("/actuator/info")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.app.name").value("Employee Management System"))
+                .andExpect(jsonPath("$.app.version").value("1.0.0"))
+                .andExpect(jsonPath("$.app.description")
+                        .value("Production-ready backend service for employee and department management"));
     }
 
     private String authenticate(String username, String password) throws Exception {

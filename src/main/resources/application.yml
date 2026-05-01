@@ -17,11 +17,22 @@ jwt:
   secret: ${JWT_SECRET:supersecretkey12345678910jwtsecretkey0987654321supersecretkey0}
   expiration: ${JWT_EXPIRATION:3600000}
 
+app:
+  name: Employee Management System
+  version: 1.0.0
+  description: Production-ready backend service for employee and department management
+
 management:
+  endpoint:
+    health:
+      show-details: never
   endpoints:
     web:
       exposure:
         include: health,info,metrics
+  info:
+    env:
+      enabled: false
 
 logging:
   pattern:
