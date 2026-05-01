@@ -26,9 +26,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.core.annotation.Order;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -429,14 +429,18 @@ class EmployeeControllerIntegrationTest {
     static class TestSecurityConfig {
 
         @Bean
+        @Order(0)
         SecurityFilterChain testSecurityFilterChain(HttpSecurity http) throws Exception {
             return http
+                    .securityMatcher("/api/v1/employees/**")
                     .csrf(csrf -> csrf.disable())
                     .authorizeHttpRequests(authorize -> authorize
-                            .requestMatchers("/api/v1/employees/**").permitAll()
-                            .anyRequest().authenticated()
+                            .anyRequest().permitAll()
                     )
-                    .httpBasic(Customizer.withDefaults())
+                    .anonymous(anonymous -> anonymous
+                            .principal("test-admin")
+                            .authorities("ROLE_ADMIN")
+                    )
                     .build();
         }
     }

@@ -14,7 +14,7 @@ spring:
     locations: classpath:db/migration
 
 jwt:
-  secret: ${JWT_SECRET:replace-with-secure-secret}
+  secret: ${JWT_SECRET:supersecretkey12345678910jwtsecretkey0987654321supersecretkey0}
   expiration: ${JWT_EXPIRATION:3600000}
 
 management:
