@@ -118,6 +118,7 @@ This starts:
 - The Spring Boot app on `localhost:8080`
 
 Flyway migrations run automatically on startup inside Docker.
+The Docker setup runs the application with the `dev` profile.
 
 ## How to Run Locally
 
@@ -125,6 +126,18 @@ Make sure PostgreSQL is running and accessible, then start the app with:
 
 ```bash
 mvn spring-boot:run
+```
+
+The application defaults to the `local` profile, which uses:
+
+- `jdbc:postgresql://localhost:5432/employee_management`
+- username `postgres`
+- password `12345`
+
+To run explicitly with the `dev` profile:
+
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 ## Environment Variables
@@ -139,7 +152,10 @@ The application can be configured with these environment variables:
 | `JWT_SECRET` | Secret used to sign JWT tokens | `strong-dev-secret-change-in-production` |
 | `JWT_EXPIRATION` | JWT expiration in milliseconds | `86400000` |
 
-Local defaults are also defined in `application.properties` for development convenience.
+Profile summary:
+
+- `local` is the default profile and uses local PostgreSQL defaults from `application-local.properties`.
+- `dev` is intended for Docker or shared environments and reads datasource and JWT settings from environment variables.
 
 ## Swagger URL
 
