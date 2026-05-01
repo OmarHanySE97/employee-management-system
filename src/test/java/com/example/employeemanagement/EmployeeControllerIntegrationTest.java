@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.employeemanagement.dto.response.AuthResponse;
 import com.example.employeemanagement.filter.CorrelationIdFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
@@ -21,17 +22,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.core.annotation.Order;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -39,7 +36,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers(disabledWithoutDocker = true)
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(EmployeeControllerIntegrationTest.TestSecurityConfig.class)
 class EmployeeControllerIntegrationTest {
 
     @Container
@@ -66,7 +62,7 @@ class EmployeeControllerIntegrationTest {
 
     @BeforeEach
     void resetDatabase() {
-        jdbcTemplate.execute("TRUNCATE TABLE employees, departments RESTART IDENTITY CASCADE");
+        jdbcTemplate.execute("TRUNCATE TABLE employees, departments, users RESTART IDENTITY CASCADE");
         jdbcTemplate.update("""
                 INSERT INTO departments (name, code, description, created_at, updated_at)
                 VALUES
@@ -75,10 +71,18 @@ class EmployeeControllerIntegrationTest {
                     ('Finance', 'FIN', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
                     ('Operations', 'OPS', NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                 """);
+        jdbcTemplate.update("""
+                INSERT INTO users (username, password, role, created_at, updated_at)
+                VALUES
+                    ('admin', '$2a$10$GExjezD1njQgRoArr/PZN.LUwdbPcakHVypvfhrHOIV0MWVOifj7G', 'ADMIN', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+                    ('hr', '$2a$10$JISk9j5l4rCqFgi9fryIZOTgYbuTD8Bj.vzmM3sepBb/9wmtTq5ba', 'HR', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+                    ('viewer', '$2a$10$ZBGEWvR08r8FvNnsi2XMcuVZ03xukv0o9dJKDXPu8X58sVB5mAKpi', 'VIEWER', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """);
     }
 
     @Test
     void shouldCreateEmployee() throws Exception {
+        String token = authenticate("hr", "Hr@123");
         Map<String, Object> request = Map.of(
                 "firstName", "Omar",
                 "lastName", "Hassan",
@@ -92,6 +96,7 @@ class EmployeeControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/api/v1/employees")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -104,6 +109,7 @@ class EmployeeControllerIntegrationTest {
 
     @Test
     void shouldDefaultStatusToActiveWhenMissing() throws Exception {
+        String token = authenticate("hr", "Hr@123");
         Map<String, Object> request = Map.of(
                 "firstName", "Mona",
                 "lastName", "Ali",
@@ -115,6 +121,7 @@ class EmployeeControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/api/v1/employees")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -123,6 +130,7 @@ class EmployeeControllerIntegrationTest {
 
     @Test
     void shouldRejectDuplicateEmployeeEmail() throws Exception {
+        String token = authenticate("hr", "Hr@123");
         insertEmployee("Omar", "Hassan", "omar.hassan@example.com", "ACTIVE", "Backend Engineer", "ENG",
                 LocalDate.of(2024, 1, 10), BigDecimal.valueOf(12000));
 
@@ -136,6 +144,7 @@ class EmployeeControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/api/v1/employees")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
@@ -144,6 +153,7 @@ class EmployeeControllerIntegrationTest {
 
     @Test
     void shouldRejectMissingDepartment() throws Exception {
+        String token = authenticate("hr", "Hr@123");
         Map<String, Object> request = Map.of(
                 "firstName", "Sara",
                 "lastName", "Nabil",
@@ -154,6 +164,7 @@ class EmployeeControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/api/v1/employees")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
@@ -161,7 +172,66 @@ class EmployeeControllerIntegrationTest {
     }
 
     @Test
+    void shouldReturnValidationErrorStructureWhenEmployeeRequestIsInvalid() throws Exception {
+        String token = authenticate("hr", "Hr@123");
+        Map<String, Object> request = Map.of(
+                "firstName", "",
+                "lastName", "Hassan",
+                "email", "invalid-email",
+                "hireDate", "2099-01-01",
+                "salary", 0,
+                "departmentId", getDepartmentIdByCode("ENG")
+        );
+
+        mockMvc.perform(post("/api/v1/employees")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(header().exists(CorrelationIdFilter.HEADER_NAME))
+                .andExpect(jsonPath("$.timestamp").isString())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Validation Failed"))
+                .andExpect(jsonPath("$.message").value("Invalid request data"))
+                .andExpect(jsonPath("$.path").value("/api/v1/employees"))
+                .andExpect(jsonPath("$.correlationId").isString())
+                .andExpect(jsonPath("$.validationErrors.firstName").value("First name is required"))
+                .andExpect(jsonPath("$.validationErrors.email").value("Email must be valid"))
+                .andExpect(jsonPath("$.validationErrors.salary").value("Salary must be greater than 0"));
+    }
+
+    @Test
+    void shouldReturnUnauthorizedForEmployeeRequestWithoutToken() throws Exception {
+        mockMvc.perform(get("/api/v1/employees"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.message").value("Authentication is required to access this resource"));
+    }
+
+    @Test
+    void shouldReturnForbiddenWhenViewerCreatesEmployee() throws Exception {
+        String token = authenticate("viewer", "Viewer@123");
+        Map<String, Object> request = Map.of(
+                "firstName", "Omar",
+                "lastName", "Hassan",
+                "email", "viewer.blocked@example.com",
+                "hireDate", "2024-01-10",
+                "salary", 12000,
+                "departmentId", getDepartmentIdByCode("ENG")
+        );
+
+        mockMvc.perform(post("/api/v1/employees")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.message").value("You do not have permission to access this resource"));
+    }
+
+    @Test
     void shouldBulkCreateEmployeesWithPartialSuccess() throws Exception {
+        String token = authenticate("hr", "Hr@123");
         insertEmployee("Existing", "User", "existing@example.com", "ACTIVE", "Engineer", "ENG",
                 LocalDate.of(2024, 1, 10), BigDecimal.valueOf(12000));
 
@@ -204,6 +274,7 @@ class EmployeeControllerIntegrationTest {
         );
 
         mockMvc.perform(post("/api/v1/employees/bulk")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -219,6 +290,7 @@ class EmployeeControllerIntegrationTest {
                 .andExpect(jsonPath("$.errors[2].reason").value("Hire date must be in the past or present"));
 
         mockMvc.perform(get("/api/v1/employees")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token))
                         .param("keyword", "omar.bulk@example.com"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(1))
@@ -227,6 +299,7 @@ class EmployeeControllerIntegrationTest {
 
     @Test
     void shouldReturnEmployeesWithPaginationSortingAndDepartment() throws Exception {
+        String token = authenticate("viewer", "Viewer@123");
         insertEmployee("Omar", "Hassan", "omar@example.com", "ACTIVE", "Engineer", "ENG",
                 LocalDate.of(2024, 1, 10), BigDecimal.valueOf(12000));
         insertEmployee("Laila", "Fathy", "laila@example.com", "INACTIVE", "HR Specialist", "HR",
@@ -235,6 +308,7 @@ class EmployeeControllerIntegrationTest {
                 LocalDate.of(2024, 5, 5), BigDecimal.valueOf(9000));
 
         mockMvc.perform(get("/api/v1/employees")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token))
                         .param("page", "0")
                         .param("size", "2")
                         .param("sort", "hireDate,desc"))
@@ -247,6 +321,7 @@ class EmployeeControllerIntegrationTest {
 
     @Test
     void shouldFilterEmployeesByStatusDepartmentKeywordSalaryAndHireDate() throws Exception {
+        String token = authenticate("viewer", "Viewer@123");
         insertEmployee("Omar", "Hassan", "omar@example.com", "ACTIVE", "Backend Engineer", "ENG",
                 LocalDate.of(2024, 1, 10), BigDecimal.valueOf(12000));
         insertEmployee("Laila", "Fathy", "laila@example.com", "INACTIVE", "HR Specialist", "HR",
@@ -255,6 +330,7 @@ class EmployeeControllerIntegrationTest {
                 LocalDate.of(2024, 5, 5), BigDecimal.valueOf(14000));
 
         mockMvc.perform(get("/api/v1/employees")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token))
                         .param("status", "ACTIVE")
                         .param("departmentId", String.valueOf(getDepartmentIdByCode("FIN")))
                         .param("keyword", "omar")
@@ -270,10 +346,12 @@ class EmployeeControllerIntegrationTest {
 
     @Test
     void shouldReturnEmployeeById() throws Exception {
+        String token = authenticate("viewer", "Viewer@123");
         long employeeId = insertEmployee("Omar", "Hassan", "omar@example.com", "ACTIVE", "Backend Engineer", "ENG",
                 LocalDate.of(2024, 1, 10), BigDecimal.valueOf(12000));
 
-        mockMvc.perform(get("/api/v1/employees/{id}", employeeId))
+        mockMvc.perform(get("/api/v1/employees/{id}", employeeId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(employeeId))
                 .andExpect(jsonPath("$.department.code").value("ENG"));
@@ -281,6 +359,7 @@ class EmployeeControllerIntegrationTest {
 
     @Test
     void shouldUpdateEmployee() throws Exception {
+        String token = authenticate("hr", "Hr@123");
         long employeeId = insertEmployee("Omar", "Hassan", "omar@example.com", "ACTIVE", "Backend Engineer", "ENG",
                 LocalDate.of(2024, 1, 10), BigDecimal.valueOf(12000));
 
@@ -297,6 +376,7 @@ class EmployeeControllerIntegrationTest {
         );
 
         mockMvc.perform(put("/api/v1/employees/{id}", employeeId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -307,10 +387,12 @@ class EmployeeControllerIntegrationTest {
 
     @Test
     void shouldChangeEmployeeStatus() throws Exception {
+        String token = authenticate("hr", "Hr@123");
         long employeeId = insertEmployee("Omar", "Hassan", "omar@example.com", "ACTIVE", "Backend Engineer", "ENG",
                 LocalDate.of(2024, 1, 10), BigDecimal.valueOf(12000));
 
         mockMvc.perform(patch("/api/v1/employees/{id}/status", employeeId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("status", "ON_LEAVE"))))
                 .andExpect(status().isOk())
@@ -319,6 +401,7 @@ class EmployeeControllerIntegrationTest {
 
     @Test
     void shouldBulkUpdateEmployeeStatusWithPartialSuccess() throws Exception {
+        String token = authenticate("hr", "Hr@123");
         long activeEmployeeId = insertEmployee("Omar", "Hassan", "omar@example.com", "ACTIVE", "Backend Engineer", "ENG",
                 LocalDate.of(2024, 1, 10), BigDecimal.valueOf(12000));
         long onLeaveEmployeeId = insertEmployee("Laila", "Fathy", "laila@example.com", "ON_LEAVE", "HR Specialist", "HR",
@@ -332,6 +415,7 @@ class EmployeeControllerIntegrationTest {
         );
 
         mockMvc.perform(patch("/api/v1/employees/bulk/status")
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -344,25 +428,30 @@ class EmployeeControllerIntegrationTest {
                 .andExpect(jsonPath("$.errors[1].identifier").value(String.valueOf(terminatedEmployeeId)))
                 .andExpect(jsonPath("$.errors[1].reason").value("Terminated employee cannot be reactivated"));
 
-        mockMvc.perform(get("/api/v1/employees/{id}", activeEmployeeId))
+        mockMvc.perform(get("/api/v1/employees/{id}", activeEmployeeId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
 
-        mockMvc.perform(get("/api/v1/employees/{id}", onLeaveEmployeeId))
+        mockMvc.perform(get("/api/v1/employees/{id}", onLeaveEmployeeId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
 
-        mockMvc.perform(get("/api/v1/employees/{id}", terminatedEmployeeId))
+        mockMvc.perform(get("/api/v1/employees/{id}", terminatedEmployeeId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("TERMINATED"));
     }
 
     @Test
     void shouldBlockReactivatingTerminatedEmployee() throws Exception {
+        String token = authenticate("hr", "Hr@123");
         long employeeId = insertEmployee("Omar", "Hassan", "omar@example.com", "TERMINATED", "Backend Engineer", "ENG",
                 LocalDate.of(2024, 1, 10), BigDecimal.valueOf(12000));
 
         mockMvc.perform(patch("/api/v1/employees/{id}/status", employeeId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("status", "ACTIVE"))))
                 .andExpect(status().isBadRequest())
@@ -371,15 +460,39 @@ class EmployeeControllerIntegrationTest {
 
     @Test
     void shouldSoftDeleteEmployee() throws Exception {
+        String token = authenticate("hr", "Hr@123");
         long employeeId = insertEmployee("Omar", "Hassan", "omar@example.com", "ACTIVE", "Backend Engineer", "ENG",
                 LocalDate.of(2024, 1, 10), BigDecimal.valueOf(12000));
 
-        mockMvc.perform(delete("/api/v1/employees/{id}", employeeId))
+        mockMvc.perform(delete("/api/v1/employees/{id}", employeeId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token)))
                 .andExpect(status().isNoContent());
 
-        mockMvc.perform(get("/api/v1/employees/{id}", employeeId))
+        mockMvc.perform(get("/api/v1/employees/{id}", employeeId)
+                        .header(HttpHeaders.AUTHORIZATION, bearerToken(token)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("TERMINATED"));
+    }
+
+    private String authenticate(String username, String password) throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "username", username,
+                                "password", password
+                        ))))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        AuthResponse response = objectMapper.readValue(
+                result.getResponse().getContentAsByteArray(),
+                AuthResponse.class
+        );
+        return response.getAccessToken();
+    }
+
+    private String bearerToken(String token) {
+        return "Bearer " + token;
     }
 
     private Long getDepartmentIdByCode(String code) {
@@ -425,23 +538,4 @@ class EmployeeControllerIntegrationTest {
         );
     }
 
-    @TestConfiguration
-    static class TestSecurityConfig {
-
-        @Bean
-        @Order(0)
-        SecurityFilterChain testSecurityFilterChain(HttpSecurity http) throws Exception {
-            return http
-                    .securityMatcher("/api/v1/employees/**")
-                    .csrf(csrf -> csrf.disable())
-                    .authorizeHttpRequests(authorize -> authorize
-                            .anyRequest().permitAll()
-                    )
-                    .anonymous(anonymous -> anonymous
-                            .principal("test-admin")
-                            .authorities("ROLE_ADMIN")
-                    )
-                    .build();
-        }
-    }
 }

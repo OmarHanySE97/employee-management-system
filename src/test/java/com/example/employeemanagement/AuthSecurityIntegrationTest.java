@@ -187,7 +187,7 @@ class AuthSecurityIntegrationTest {
                 .andExpect(jsonPath("$.app.name").value("Employee Management System"))
                 .andExpect(jsonPath("$.app.version").value("1.0.0"))
                 .andExpect(jsonPath("$.app.description")
-                        .value("Production-ready backend service for employee and department management"));
+                        .value("Backend service for managing employees and departments."));
     }
 
     private String authenticate(String username, String password) throws Exception {

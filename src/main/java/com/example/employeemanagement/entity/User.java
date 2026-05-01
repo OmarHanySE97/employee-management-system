@@ -7,17 +7,16 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 
+/**
+ * Application user entity used for authentication and authorization.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
-@ToString(callSuper = true, exclude = "password")
-@EqualsAndHashCode(callSuper = true)
 @Entity
 @Table(
         name = "users",
@@ -36,4 +35,18 @@ public class User extends BaseAuditableEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role;
+
+    /**
+     * Returns a safe string representation for debugging and logs without exposing credentials.
+     *
+     * @return the user summary string
+     */
+    @Override
+    public String toString() {
+        return "User{"
+                + "id=" + getId()
+                + ", username='" + username + '\''
+                + ", role=" + role
+                + '}';
+    }
 }

@@ -18,6 +18,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+/**
+ * Encapsulates employee-related business validations and guard checks.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -27,6 +30,12 @@ public class EmployeeValidator {
     private final DepartmentRepository departmentRepository;
     private final Validator beanValidator;
 
+    /**
+     * Validates a bulk employee creation payload using bean validation rules.
+     *
+     * @param request the employee creation payload
+     * @return the validation messages collected for the payload
+     */
     public List<String> validateBulkCreateRequest(EmployeeCreateRequest request) {
         if (request == null) {
             return List.of("Employee request must not be null");
@@ -41,6 +50,11 @@ public class EmployeeValidator {
                 .toList();
     }
 
+    /**
+     * Validates the top-level bulk employee status update payload.
+     *
+     * @param request the bulk status update payload
+     */
     public void validateBulkStatusUpdateRequest(BulkEmployeeStatusUpdateRequest request) {
         if (request == null) {
             throw new BusinessException("Bulk employee status update request is required");
@@ -55,6 +69,11 @@ public class EmployeeValidator {
         }
     }
 
+    /**
+     * Validates that no employee already exists with the supplied email.
+     *
+     * @param email the employee email to validate
+     */
     public void validateEmailUniqueness(String email) {
         if (employeeRepository.existsByEmailIgnoreCase(email)) {
             log.warn("Duplicate employee email creation attempt: email={}", email);
@@ -62,6 +81,12 @@ public class EmployeeValidator {
         }
     }
 
+    /**
+     * Validates that no other employee already exists with the supplied email.
+     *
+     * @param email the employee email to validate
+     * @param id the employee identifier to exclude
+     */
     public void validateEmailUniqueness(String email, Long id) {
         if (employeeRepository.existsByEmailIgnoreCaseAndIdNot(email, id)) {
             log.warn("Duplicate employee email update attempt: id={}, email={}", id, email);
@@ -69,11 +94,23 @@ public class EmployeeValidator {
         }
     }
 
+    /**
+     * Retrieves an employee by identifier or raises a not-found exception.
+     *
+     * @param id the employee identifier
+     * @return the existing employee entity
+     */
     public Employee validateEmployeeExists(Long id) {
         return employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + id));
     }
 
+    /**
+     * Retrieves a department by identifier or raises a not-found exception.
+     *
+     * @param departmentId the department identifier
+     * @return the existing department entity
+     */
     public Department validateDepartmentExists(Long departmentId) {
         return departmentRepository.findById(departmentId)
                 .orElseThrow(() -> {
@@ -82,6 +119,12 @@ public class EmployeeValidator {
                 });
     }
 
+    /**
+     * Validates whether the requested employee status transition is allowed.
+     *
+     * @param employee the employee being updated
+     * @param newStatus the requested new status
+     */
     public void validateStatusTransition(Employee employee, EmployeeStatus newStatus) {
         if (employee.getStatus() == EmployeeStatus.TERMINATED && newStatus == EmployeeStatus.ACTIVE) {
             log.warn("Employee status change blocked by business rule: id={}, currentStatus={}, requestedStatus={}",

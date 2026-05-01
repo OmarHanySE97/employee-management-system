@@ -16,6 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+/**
+ * Default implementation of department management use cases.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -26,6 +29,12 @@ public class DepartmentServiceImpl implements DepartmentService {
     private final DepartmentMapper departmentMapper;
     private final DepartmentValidator departmentValidator;
 
+    /**
+     * Creates a department after validating name and code uniqueness.
+     *
+     * @param request the department creation payload
+     * @return the created department response
+     */
     @Override
     @Transactional
     public DepartmentResponse createDepartment(DepartmentCreateRequest request) {
@@ -49,17 +58,36 @@ public class DepartmentServiceImpl implements DepartmentService {
         return departmentMapper.toResponse(savedDepartment);
     }
 
+    /**
+     * Retrieves departments with pagination and sorting applied.
+     *
+     * @param pageable paging and sorting configuration
+     * @return a page of department responses
+     */
     @Override
     public Page<DepartmentResponse> getDepartments(Pageable pageable) {
         return departmentRepository.findAll(pageable)
                 .map(departmentMapper::toResponse);
     }
 
+    /**
+     * Retrieves a single department by identifier.
+     *
+     * @param id the department identifier
+     * @return the matching department response
+     */
     @Override
     public DepartmentResponse getDepartmentById(Long id) {
         return departmentMapper.toResponse(departmentValidator.validateDepartmentExists(id));
     }
 
+    /**
+     * Updates a department after uniqueness and existence checks pass.
+     *
+     * @param id the department identifier
+     * @param request the update payload
+     * @return the updated department response
+     */
     @Override
     @Transactional
     public DepartmentResponse updateDepartment(Long id, DepartmentUpdateRequest request) {
@@ -83,6 +111,11 @@ public class DepartmentServiceImpl implements DepartmentService {
         return departmentMapper.toResponse(savedDepartment);
     }
 
+    /**
+     * Deletes a department when no employees are assigned to it.
+     *
+     * @param id the department identifier
+     */
     @Override
     @Transactional
     public void deleteDepartment(Long id) {
@@ -96,10 +129,22 @@ public class DepartmentServiceImpl implements DepartmentService {
                 department.getCode());
     }
 
+    /**
+     * Trims a required string value before persistence.
+     *
+     * @param value the raw input value
+     * @return the trimmed value
+     */
     private String normalizeRequiredValue(String value) {
         return value.trim();
     }
 
+    /**
+     * Trims an optional string value and converts blank input to {@code null}.
+     *
+     * @param value the raw input value
+     * @return the trimmed value or {@code null} when blank
+     */
     private String normalizeOptionalValue(String value) {
         if (!StringUtils.hasText(value)) {
             return null;
