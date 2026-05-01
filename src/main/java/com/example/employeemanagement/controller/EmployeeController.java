@@ -1,12 +1,15 @@
 package com.example.employeemanagement.controller;
 
 import com.example.employeemanagement.dto.filter.EmployeeFilterRequest;
+import com.example.employeemanagement.dto.request.BulkEmployeeStatusUpdateRequest;
 import com.example.employeemanagement.dto.request.EmployeeCreateRequest;
 import com.example.employeemanagement.dto.request.EmployeeStatusUpdateRequest;
 import com.example.employeemanagement.dto.request.EmployeeUpdateRequest;
+import com.example.employeemanagement.dto.response.BulkOperationResponse;
 import com.example.employeemanagement.dto.response.EmployeeResponse;
 import com.example.employeemanagement.service.EmployeeService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -39,6 +42,13 @@ public class EmployeeController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PostMapping("/bulk")
+    public ResponseEntity<BulkOperationResponse> bulkCreateEmployees(
+            @RequestBody List<EmployeeCreateRequest> requests
+    ) {
+        return ResponseEntity.ok(employeeService.bulkCreateEmployees(requests));
+    }
+
     @GetMapping
     public ResponseEntity<Page<EmployeeResponse>> getEmployees(
             @Valid @ModelAttribute EmployeeFilterRequest filterRequest,
@@ -66,6 +76,13 @@ public class EmployeeController {
             @Valid @RequestBody EmployeeStatusUpdateRequest request
     ) {
         return ResponseEntity.ok(employeeService.changeEmployeeStatus(id, request));
+    }
+
+    @PatchMapping("/bulk/status")
+    public ResponseEntity<BulkOperationResponse> bulkUpdateEmployeeStatus(
+            @RequestBody BulkEmployeeStatusUpdateRequest request
+    ) {
+        return ResponseEntity.ok(employeeService.bulkUpdateEmployeeStatus(request));
     }
 
     @DeleteMapping("/{id}")
